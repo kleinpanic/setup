@@ -1,0 +1,60 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <sys/stat.h>
+#include "setup.h"
+
+// Function to create a project directory
+int create_project_dir(const char *dir_name) {
+    if (mkdir(dir_name, 0700) == -1) {
+        perror("Error creating project directory");
+        return 1;
+    }
+    printf("Project directory '%s' created.\n", dir_name);
+    return 0;
+}
+
+int main(int argc, char *argv[]) {
+    if (argc < 2) {
+        printf("Usage: %s <project_name> [language]\n", argv[0]);
+        return 1;
+    }
+
+    const char *project_name = argv[1];
+    const char *language = NULL;
+
+    if (argc == 3) {
+        language = argv[2];  // Language passed as argument
+    } else {
+        char cwd[1024];
+        if (getcwd(cwd, sizeof(cwd)) == NULL) {
+            perror("getcwd() error");
+            return 1;
+        }
+
+        language = detect_language(cwd);  // Updated to use the new function that checks the language from the config file
+
+        if (language == NULL) {
+            printf("Could not detect the coding language. Please rerun the setup with a language name after the project name.\n");
+            return 0;
+        }
+    }
+
+    printf("Detected language: %s\n", language);
+
+    // Create project directory if language is valid
+    if (create_project_dir(project_name) != 0) {
+        return 1;
+    }
+
+    // Perform setup based on language
+    if (strcmp(language, "python") == 0 || strcmp(language, "python3") == 0) {
+        setup_python();
+    }
+
+    // Git setup
+    setup_git(project_name, project_name);  // Assuming project path is the project name
+
+    return 0;
+}
